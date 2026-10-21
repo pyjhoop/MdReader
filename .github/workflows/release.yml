@@ -1,0 +1,40 @@
+name: release
+
+# v0.1.1 같은 태그를 push 하면 Windows 설치 파일을 빌드해 GitHub Releases 에 올린다.
+# 앱은 Releases 의 latest.json 을 보고 스스로 업데이트한다.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'MdReader ${{ github.ref_name }}'
+          releaseBody: 'Windows 설치 파일입니다. 설치 후 앱을 한 번 실행하면 `mdr .` 명령을 쓸 수 있습니다.'
+          releaseDraft: false
+          prerelease: false
